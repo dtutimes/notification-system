@@ -1,27 +1,28 @@
 use std::io::{self, Read};
 
 use select::document::Document;
+use select::node::Node;
 use select::predicate::{Attr, Class, Name};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use url::Url;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize)]
 struct Link(String);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize)]
 struct Data {
     title: String,
     link: Option<Link>,
     children: Vec<LinkNode>,
     date: Option<String>,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize)]
 struct LinkNode {
     title: String,
     link: Link,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize)]
 struct Tab {
     title: String,
     data: Vec<Data>,
@@ -62,7 +63,7 @@ fn main() {
 
             let data = tab_data
                 .filter_map(|element| {
-                    if let Some(pointer) = element.find(Name("h6")).next() {
+                    element.find(Name("h6")).next().and_then(|pointer| {
                         let data_title_elem = pointer.first_child()?;
 
                         let date = pointer.next().and_then(|date_elem| {
@@ -77,12 +78,9 @@ fn main() {
                             data_title_elem.name() == Some("a"),
                             "h6 is not followed by anchor tag as expected"
                         );
-                        let data = Data {
-                            title: data_title_elem
-                                .text()
-                                .trim()
-                                .trim_matches(['\t', '\n', '\u{a0}', '|', ' '])
-                                .to_owned(),
+
+                        Some(Data {
+                            title: clean_text(data_title_elem),
                             link: data_title_elem
                                 .attr("href")
                                 .and_then(|s| base_url.parse(s).map(|s| Link(s.to_string())).ok()),
@@ -95,11 +93,7 @@ fn main() {
                                             .parse(link)
                                             .map(|s| Link(s.to_string()))
                                             .map(|link| LinkNode {
-                                                title: s
-                                                    .text()
-                                                    .trim()
-                                                    .trim_matches(['\t', '\n', '\u{a0}', '|', ' '])
-                                                    .to_string(),
+                                                title: clean_text(s),
                                                 link,
                                             })
                                             .ok()
@@ -107,12 +101,8 @@ fn main() {
                                 })
                                 .collect(),
                             date,
-                        };
-
-                        Some(data)
-                    } else {
-                        None
-                    }
+                        })
+                    })
                 })
                 .collect();
 
@@ -129,4 +119,12 @@ fn main() {
         "{}",
         serde_json::to_string(&tabs_data).expect("Non-string keys should not be used")
     );
+}
+
+#[inline]
+fn clean_text(s: Node) -> String {
+    s.text()
+        .trim()
+        .trim_matches(['\t', '\n', '\u{a0}', '|', ' '])
+        .to_string()
 }
