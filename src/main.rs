@@ -49,29 +49,21 @@ fn main() {
     let tabs_data: Vec<_> = document
         .find(Class("tab_content"))
         .filter_map(|e| {
-            let Some(id) = e.attr("id") else {
-                return None;
-            };
+            let id = e.attr("id")?;
 
             let selector = format!("#{}", id);
-            let Some(tab_title) = document.find(Attr("href", selector.as_str())).next() else {
-                return None;
-            };
+            let tab_title = document.find(Attr("href", selector.as_str())).next()?;
 
             let tab_title = tab_title.text();
 
-            let Some(tab_data) = e.find(Class("latest_tab")).next() else {
-                return None;
-            };
+            let tab_data = e.find(Class("latest_tab")).next()?;
 
             let tab_data = tab_data.find(Name("li"));
 
             let data = tab_data
                 .filter_map(|element| {
                     if let Some(pointer) = element.find(Name("h6")).next() {
-                        let Some(data_title_elem) = pointer.first_child() else {
-                            return None;
-                        };
+                        let data_title_elem = pointer.first_child()?;
 
                         let date = pointer.next().and_then(|date_elem| {
                             if date_elem.name() == Some("small") {
