@@ -66,59 +66,63 @@ fn main() {
 
             let tab_data = tab_data.find(Name("li"));
 
-            let mut data = Vec::new();
-            
-            for element in tab_data {
-                if let Some(pointer) = element.find(Name("h6")).next() {
-                    let date = pointer.next().and_then(|date_elem| {
-                        if date_elem.name() == Some("small") {
-                            Some(date_elem.text().trim().to_owned())
-                        } else {
-                            None
-                        }
-                    });
+            let data = tab_data
+                .filter_map(|element| {
+                    if let Some(pointer) = element.find(Name("h6")).next() {
+                        let Some(data_title_elem) = pointer.first_child() else {
+                            return None;
+                        };
 
-                    let Some(data_title_elem) = pointer.first_child() else {
-                        continue;
-                    };
+                        let date = pointer.next().and_then(|date_elem| {
+                            if date_elem.name() == Some("small") {
+                                Some(date_elem.text().trim().to_owned())
+                            } else {
+                                None
+                            }
+                        });
 
-                    assert!(
-                        data_title_elem.name() == Some("a"),
-                        "h6 is not followed by anchor tag as expected"
-                    );
-                    data.push(Data {
-                        title: data_title_elem
-                            .text()
-                            .trim()
-                            .trim_matches(['\t', '\n', '\u{a0}', '|', ' '])
-                            .to_owned(),
-                        link: data_title_elem
-                            .attr("href")
-                            .and_then(|s| base_url.parse(s).map(|s| Link(s.to_string())).ok()),
-                        children: pointer
-                            .children()
-                            .skip(1)
-                            .filter_map(|s| {
-                                s.attr("href").and_then(|link| {
-                                    base_url
-                                        .parse(link)
-                                        .map(|s| Link(s.to_string()))
-                                        .map(|link| LinkNode {
-                                            title: s
-                                                .text()
-                                                .trim()
-                                                .trim_matches(['\t', '\n', '\u{a0}', '|', ' '])
-                                                .to_string(),
-                                            link,
-                                        })
-                                        .ok()
+                        assert!(
+                            data_title_elem.name() == Some("a"),
+                            "h6 is not followed by anchor tag as expected"
+                        );
+                        let data = Data {
+                            title: data_title_elem
+                                .text()
+                                .trim()
+                                .trim_matches(['\t', '\n', '\u{a0}', '|', ' '])
+                                .to_owned(),
+                            link: data_title_elem
+                                .attr("href")
+                                .and_then(|s| base_url.parse(s).map(|s| Link(s.to_string())).ok()),
+                            children: pointer
+                                .children()
+                                .skip(1)
+                                .filter_map(|s| {
+                                    s.attr("href").and_then(|link| {
+                                        base_url
+                                            .parse(link)
+                                            .map(|s| Link(s.to_string()))
+                                            .map(|link| LinkNode {
+                                                title: s
+                                                    .text()
+                                                    .trim()
+                                                    .trim_matches(['\t', '\n', '\u{a0}', '|', ' '])
+                                                    .to_string(),
+                                                link,
+                                            })
+                                            .ok()
+                                    })
                                 })
-                            })
-                            .collect(),
-                        date,
-                    });
-                }
-            }
+                                .collect(),
+                            date,
+                        };
+
+                        Some(data)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
 
             let tab = Tab {
                 title: tab_title,
