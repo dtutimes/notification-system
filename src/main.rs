@@ -42,20 +42,32 @@ fn main() {
 
     let make_link = |link: &str| base_url.parse(link).map(|s| Link(s.to_string())).ok();
 
-    for element in document.find(Name("marquee")) {
-        let x = element.find(Name("a")).filter_map(|node| {
-            let date = get_date(node);
+    // for element in document.find(Name("marquee")) {
 
-            node.attr("href").map(|link| Data {
-                title: clean_text(node),
-                link: make_link(link),
-                children: vec![],
-                date,
-            })
-        });
+    //     let x = element
+    //         .find(select::predicate::("a"))
+    //         .filter(|node| {
+    //             node.next()
+    //                 .and_then(|next_elem| {
+    //                     dbg!(next_elem.text());
+    //                     (dbg!(next_elem.name()) == Some("br"))
+    //                         .then(|| next_elem.next().map(|n| n.name() == Some("br")))
+    //                         .flatten()
+    //                 })
+    //                 .is_some()
+    //         })
+    //         .map(|node| node.text());
 
-        println!("{}", serde_json::to_string(&x.collect::<Vec<_>>()).unwrap());
-    }
+    //  let date = get_date(node);
+
+    // node.attr("href").map(|link| Data {
+    //     title: clean_text(node),
+    //     link: make_link(link),
+    //     children: vec![],
+    //     date,
+    // })
+    // println!("{}", serde_json::to_string(&x.collect::<Vec<_>>()).unwrap());
+    // }
 
     let tabs_data: Vec<_> = document
         .find(Class("tab_content"))
@@ -113,10 +125,10 @@ fn main() {
         })
         .collect();
 
-    // println!(
-    //     "{}",
-    //     serde_json::to_string(&tabs_data).expect("Non-string keys should not be used")
-    // );
+    println!(
+        "{}",
+        serde_json::to_string(&tabs_data).expect("Non-string keys should not be used")
+    );
 }
 
 #[inline]
