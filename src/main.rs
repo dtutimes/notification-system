@@ -36,16 +36,26 @@ fn main() {
     let arg: String = String::from_utf8_lossy(&arg).into_owned();
 
     let document = Document::from(arg.as_str());
-    // println!("{:?}", document.find(Name("marquee")).count());
-
-    // for element in document.find(Name("marquee")) {
-    //     let m: Data = element.try_into().unwrap();
-    //     println!("{:?}", m);
-    //     break;
-    // }
 
     let api = Url::parse("https://dtu.ac.in").expect("Base url must be valid");
     let base_url = Url::options().base_url(Some(&api));
+
+    let make_link = |link: &str| base_url.parse(link).map(|s| Link(s.to_string())).ok();
+
+    for element in document.find(Name("marquee")) {
+        let x = element.find(Name("a")).filter_map(|node| {
+            let date = get_date(node);
+
+            node.attr("href").map(|link| Data {
+                title: clean_text(node),
+                link: make_link(link),
+                children: vec![],
+                date,
+            })
+        });
+
+        println!("{}", serde_json::to_string(&x.collect::<Vec<_>>()).unwrap());
+    }
 
     let tabs_data: Vec<_> = document
         .find(Class("tab_content"))
@@ -66,13 +76,7 @@ fn main() {
                     element.find(Name("h6")).next().and_then(|pointer| {
                         let data_title_elem = pointer.first_child()?;
 
-                        let date = pointer.next().and_then(|date_elem| {
-                            if date_elem.name() == Some("small") {
-                                Some(date_elem.text().trim().to_owned())
-                            } else {
-                                None
-                            }
-                        });
+                        let date = get_date(pointer);
 
                         assert!(
                             data_title_elem.name() == Some("a"),
@@ -81,22 +85,16 @@ fn main() {
 
                         Some(Data {
                             title: clean_text(data_title_elem),
-                            link: data_title_elem
-                                .attr("href")
-                                .and_then(|s| base_url.parse(s).map(|s| Link(s.to_string())).ok()),
+                            link: data_title_elem.attr("href").and_then(|s| make_link(s)),
                             children: pointer
                                 .children()
                                 .skip(1)
                                 .filter_map(|s| {
                                     s.attr("href").and_then(|link| {
-                                        base_url
-                                            .parse(link)
-                                            .map(|s| Link(s.to_string()))
-                                            .map(|link| LinkNode {
-                                                title: clean_text(s),
-                                                link,
-                                            })
-                                            .ok()
+                                        make_link(link).map(|link| LinkNode {
+                                            title: clean_text(s),
+                                            link,
+                                        })
                                     })
                                 })
                                 .collect(),
@@ -115,10 +113,10 @@ fn main() {
         })
         .collect();
 
-    println!(
-        "{}",
-        serde_json::to_string(&tabs_data).expect("Non-string keys should not be used")
-    );
+    // println!(
+    //     "{}",
+    //     serde_json::to_string(&tabs_data).expect("Non-string keys should not be used")
+    // );
 }
 
 #[inline]
@@ -127,4 +125,14 @@ fn clean_text(s: Node) -> String {
         .trim()
         .trim_matches(['\t', '\n', '\u{a0}', '|', ' '])
         .to_string()
+}
+
+fn get_date(s: Node) -> Option<String> {
+    s.next().and_then(|date_elem| {
+        if date_elem.name() == Some("small") {
+            Some(date_elem.text().trim().to_owned())
+        } else {
+            None
+        }
+    })
 }
