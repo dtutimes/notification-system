@@ -2,31 +2,47 @@ use select::document::Document;
 use select::node::Node;
 use select::predicate::{Attr, Class, Name};
 use serde::Serialize;
+#[cfg(feature = "wasm")]
+use tsify::Tsify;
 use url::Url;
 
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
+
 #[derive(Serialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Link(pub String);
 
 #[derive(Serialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Data {
     pub title: String,
+    #[cfg_attr(feature = "wasm", tsify(optional))]
     pub link: Option<Link>,
     pub children: Vec<LinkNode>,
+    #[cfg_attr(feature = "wasm", tsify(optional))]
     pub date: Option<String>,
 }
+
 #[derive(Serialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct LinkNode {
     pub title: String,
     pub link: Link,
 }
 
 #[derive(Serialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Tab {
     pub title: String,
     pub data: Vec<Data>,
 }
+#[derive(Serialize)]
+#[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
+pub struct Information(Vec<Tab>);
 
-pub fn scrape(html: &str) -> Vec<Tab> {
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+pub fn scrape(html: &str) -> Information {
     let document = Document::from(html);
 
     let api = Url::parse("https://dtu.ac.in").expect("Base url must be valid");
@@ -34,7 +50,7 @@ pub fn scrape(html: &str) -> Vec<Tab> {
 
     let make_link = |link: &str| base_url.parse(link).map(|s| Link(s.to_string())).ok();
 
-    document
+    let data = document
         .find(Class("tab_content"))
         .filter_map(|e| {
             let id = e.attr("id")?;
@@ -84,7 +100,9 @@ pub fn scrape(html: &str) -> Vec<Tab> {
 
             Some(tab)
         })
-        .collect()
+        .collect();
+
+    Information(data)
 }
 
 #[inline]
