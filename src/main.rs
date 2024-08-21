@@ -3,6 +3,9 @@ use std::io::Read;
 mod scrape;
 use scrape::*;
 
+mod diff;
+use diff::*;
+
 fn main() {
     let mut arg = Vec::new();
     std::io::stdin()

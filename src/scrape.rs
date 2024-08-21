@@ -1,19 +1,34 @@
 use select::document::Document;
 use select::node::Node;
 use select::predicate::{Attr, Class, Name};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "wasm")]
 use tsify::Tsify;
 use url::Url;
 
+// use std::hash::{Hash, Hasher};
+// macro_rules! impl_hash {
+//     ($i:ident) => {
+//         impl Hash for $i {
+//             fn hash<H: Hasher>(&self, state: &mut H) {
+//                 self.title.hash(state);
+//             }
+//         }
+//     };
+// }
+
+// impl_hash!(Data);
+// impl_hash!(Tab);
+// impl_hash!(LinkNode);
+
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq, Eq, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Link(pub String);
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Data {
     pub title: String,
@@ -24,22 +39,22 @@ pub struct Data {
     pub date: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct LinkNode {
     pub title: String,
     pub link: Link,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Tab {
     pub title: String,
     pub data: Vec<Data>,
 }
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
-pub struct Information(Vec<Tab>);
+pub struct Information(pub Vec<Tab>);
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub fn scrape(html: &str) -> Information {
