@@ -5,7 +5,7 @@ use tsify::Tsify;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
-use crate::*;
+ use crate::scrape::*;
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub enum Update {
@@ -32,7 +32,6 @@ impl From<Data> for DataUpdate {
     }
 }
 
-
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct TabUpdate {
@@ -40,7 +39,6 @@ pub struct TabUpdate {
     pub data: Vec<DataUpdate>,
     pub update: Update,
 }
-
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
@@ -60,24 +58,26 @@ impl From<LinkNode> for LinkNodeUpdate {
     }
 }
 
-
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct DataUpdate {
     pub title: String,
+    #[cfg_attr(feature = "wasm", tsify(optional))]
     pub link: Option<Link>,
     pub children: Vec<LinkNodeUpdate>,
+    #[cfg_attr(feature = "wasm", tsify(optional))]
     pub date: Option<String>,
     pub update: Update,
 }
-
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct InformationUpdate(pub Vec<TabUpdate>);
 
-// #[cfg_attr(feature = "wasm", wasm_bindgen)]
-pub fn difference(newer: Information, older: Information) -> InformationUpdate {
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+pub fn difference(newer: String, older: String) -> InformationUpdate {
+    let older = scrape(&older);
+    let newer = scrape(&newer);
     InformationUpdate(diff_tabs(newer.0, older.0))
 }
 

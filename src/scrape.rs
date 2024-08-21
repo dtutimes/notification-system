@@ -1,7 +1,7 @@
 use select::document::Document;
 use select::node::Node;
 use select::predicate::{Attr, Class, Name};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 #[cfg(feature = "wasm")]
 use tsify::Tsify;
 use url::Url;
@@ -24,11 +24,11 @@ use url::Url;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
-#[derive(Serialize, PartialEq, Eq, Deserialize)]
+#[derive(Serialize, PartialEq, Eq)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Link(pub String);
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Data {
     pub title: String,
@@ -39,20 +39,20 @@ pub struct Data {
     pub date: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct LinkNode {
     pub title: String,
     pub link: Link,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Tab {
     pub title: String,
     pub data: Vec<Data>,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Information(pub Vec<Tab>);
 

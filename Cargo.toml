@@ -15,7 +15,7 @@ wasm-bindgen = { version = "0.2.93", optional = true }
 [lib]
 crate-type = ["cdylib", "rlib"]
 name = "notification_wrapper"
-path = "src/scrape.rs"
+path = "src/lib.rs"
 
 [[bin]]
 name = "notification-system"
