@@ -6,5 +6,20 @@ edition = "2021"
 [dependencies]
 select = "0.6.0"
 serde = { version = "1.0.208", features = ["derive"] }
+serde-wasm-bindgen = { version = "0.6.5", optional = true }
 serde_json = "1.0.125"
+tsify = { version = "0.4.5", optional = true }
 url = "2.5.2"
+wasm-bindgen = { version = "0.2.93", optional = true }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "notification_wrapper"
+path = "src/scrape.rs"
+
+[[bin]]
+name = "notification-system"
+path = "src/main.rs"
+
+[features]
+wasm = ["dep:wasm-bindgen", "dep:tsify", "dep:serde-wasm-bindgen"]

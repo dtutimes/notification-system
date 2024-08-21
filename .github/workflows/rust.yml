@@ -28,3 +28,9 @@ jobs:
 
       - name: Get to target dir
         run: cargo install --path .
+
+      - name: Generate node package using wasm-pack
+        run: wasm-pack build -t nodejs --features wasm
+
+      - name: Update node package
+        run: rsync -avz --delete pkg/ ~/notification-system-wasm
