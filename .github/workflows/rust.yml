@@ -33,4 +33,4 @@ jobs:
         run: wasm-pack build -t nodejs --features wasm
 
       - name: Update node package
-        run: rsync -avz --delete pkg/ ~/notification-system-wasm
+        run: rsync -avz --delete pkg/ ~/notification-system-wasm/pkg/
