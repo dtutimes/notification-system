@@ -23,4 +23,3 @@ path = "src/main.rs"
 
 [features]
 wasm = ["dep:wasm-bindgen", "dep:tsify", "dep:serde-wasm-bindgen"]
-default = ["wasm"]

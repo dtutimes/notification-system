@@ -1,11 +1,35 @@
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 #[cfg(feature = "wasm")]
 use tsify::Tsify;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
- use crate::scrape::*;
+use crate::scrape::*;
+
+use std::hash::{Hash, Hasher};
+macro_rules! impl_hash {
+    ($i:ident) => {
+        impl Hash for $i {
+            fn hash<H: Hasher>(&self, state: &mut H) {
+                self.title.hash(state);
+            }
+        }
+
+        impl PartialEq for $i {
+            fn eq(&self, other: &Self) -> bool {
+                self.title == other.title
+            }
+        }
+
+        impl Eq for $i {}
+    };
+}
+
+impl_hash!(Data);
+impl_hash!(Tab);
+impl_hash!(LinkNode);
+
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub enum Update {
@@ -75,13 +99,19 @@ pub struct DataUpdate {
 pub struct InformationUpdate(pub Vec<TabUpdate>);
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
-pub fn difference(newer: String, older: String) -> InformationUpdate {
-    let older = scrape(&older);
-    let newer = scrape(&newer);
-    InformationUpdate(diff_tabs(newer.0, older.0))
+pub fn difference(newer: &str, older: &str) -> InformationUpdate {
+    let older = scrape(older);
+    let newer = scrape(newer);
+
+    let older: HashSet<_> = HashSet::from_iter(older.0.into_iter());
+    let newer: HashSet<_> = HashSet::from_iter(newer.0.into_iter());
+    InformationUpdate(diff_tabs(newer, older))
 }
 
-fn diff_tabs(newer: Vec<Tab>, older: Vec<Tab>) -> Vec<TabUpdate> {
+fn diff_tabs<I>(newer: I, older: I) -> Vec<TabUpdate>
+where
+    I: IntoIterator<Item = Tab>,
+{
     let mut newer_mp: HashMap<String, Vec<Data>> = HashMap::from_iter(
         newer
             .into_iter()
@@ -132,6 +162,9 @@ fn diff_data(newer: Vec<Data>, older: Vec<Data>) -> Vec<DataUpdate> {
         children: Vec<LinkNode>,
         date: Option<String>,
     }
+
+    let older: HashSet<_> = HashSet::from_iter(older.into_iter().rev());
+    let newer: HashSet<_> = HashSet::from_iter(newer.into_iter().rev());
 
     let mut newer_mp: HashMap<String, DataStorage> =
         HashMap::from_iter(newer.into_iter().map(|tab_data| {
@@ -197,6 +230,9 @@ fn diff_data(newer: Vec<Data>, older: Vec<Data>) -> Vec<DataUpdate> {
 }
 
 fn diff_link_node(newer: Vec<LinkNode>, older: Vec<LinkNode>) -> Vec<LinkNodeUpdate> {
+    let older: HashSet<_> = HashSet::from_iter(older.into_iter().rev());
+    let newer: HashSet<_> = HashSet::from_iter(newer.into_iter().rev());
+
     let mut newer_mp: HashMap<String, Link> = HashMap::from_iter(
         newer
             .into_iter()

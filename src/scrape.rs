@@ -6,21 +6,6 @@ use serde::Serialize;
 use tsify::Tsify;
 use url::Url;
 
-// use std::hash::{Hash, Hasher};
-// macro_rules! impl_hash {
-//     ($i:ident) => {
-//         impl Hash for $i {
-//             fn hash<H: Hasher>(&self, state: &mut H) {
-//                 self.title.hash(state);
-//             }
-//         }
-//     };
-// }
-
-// impl_hash!(Data);
-// impl_hash!(Tab);
-// impl_hash!(LinkNode);
-
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
