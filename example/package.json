@@ -4,12 +4,16 @@
     "type": "module",
     "main": "index.js",
     "scripts": {
-        "start": "node index.js"
+        "start": "npx tsc index.ts -m nodenext && node index.js"
     },
     "author": "",
     "license": "ISC",
     "description": "",
     "dependencies": {
         "notification-system": "file:../pkg"
+    },
+    "devDependencies": {
+        "@types/node": "^22.5.0",
+        "typescript": "^5.5.4"
     }
 }
