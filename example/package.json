@@ -13,7 +13,6 @@
         "notification-system": "file:../pkg"
     },
     "devDependencies": {
-        "@types/node": "^22.5.0",
         "typescript": "^5.5.4"
     }
 }
