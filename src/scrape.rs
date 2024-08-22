@@ -9,7 +9,7 @@ use url::Url;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq, Eq)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Link(pub String);
 
@@ -39,7 +39,7 @@ pub struct Tab {
 }
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
-pub struct Information(Vec<Tab>);
+pub struct Information(pub Vec<Tab>);
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub fn scrape(html: &str) -> Information {

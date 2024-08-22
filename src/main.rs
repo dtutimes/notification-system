@@ -1,7 +1,17 @@
-use std::io::Read;
+use std::{fs, io::Read};
 
+mod diff;
 mod scrape;
-use scrape::*;
+use diff::*;
+
+macro_rules! print_diff {
+    ($i: ident, $j: ident) => {
+        let diff = difference(&$i, &$j);
+        let diff_json = serde_json::to_string(&diff).expect("JSON keys should be valid string");
+        println!("{}", diff_json);
+        fs::write("old_state.json", $i).expect("Should be able to save");
+    };
+}
 
 fn main() {
     let mut arg = Vec::new();
@@ -10,10 +20,10 @@ fn main() {
         .expect("Failed to read from stdin");
     let arg: String = String::from_utf8_lossy(&arg).into_owned();
 
-    let tabs_data = scrape(&arg);
-
-    println!(
-        "{}",
-        serde_json::to_string(&tabs_data).expect("Non-string keys should not be used")
-    );
+    if let Ok(f) = fs::read("old_state.json") {
+        let old_state = String::from_utf8_lossy(&f);
+        print_diff!(arg, old_state);
+    } else {
+        print_diff!(arg, arg);
+    };
 }
