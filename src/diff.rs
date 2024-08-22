@@ -1,3 +1,5 @@
+#[cfg(feature = "wasm")]
+use serde::Deserialize;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 #[cfg(feature = "wasm")]
@@ -98,17 +100,56 @@ pub struct DataUpdate {
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct InformationUpdate(pub Vec<TabUpdate>);
 
+#[derive(Serialize, Clone, Copy)]
+#[cfg_attr(feature = "wasm", derive(Deserialize), wasm_bindgen)]
+pub struct Configuration {
+    pub modified: bool,
+    pub added: bool,
+    pub removed: bool,
+    pub unchanged: bool,
+}
+
+#[cfg(feature = "wasm")]
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
-pub fn difference(newer: &str, older: &str) -> InformationUpdate {
+impl Configuration {
+    #[cfg_attr(feature = "wasm", wasm_bindgen(constructor))]
+    pub fn new(modified: bool, added: bool, removed: bool, unchanged: bool) -> Self {
+        Self {
+            modified,
+            added,
+            removed,
+            unchanged,
+        }
+    }
+    #[cfg_attr(feature = "wasm", wasm_bindgen(js_name = "default_config"))]
+    /// Default config which reports everything except unchanged data
+    pub fn default_wasm_config() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for Configuration {
+    fn default() -> Self {
+        Self {
+            modified: true,
+            added: true,
+            removed: true,
+            unchanged: false,
+        }
+    }
+}
+
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+pub fn difference(newer: &str, older: &str, config: Configuration) -> InformationUpdate {
     let older = scrape(older);
     let newer = scrape(newer);
 
     let older: HashSet<_> = HashSet::from_iter(older.0.into_iter());
     let newer: HashSet<_> = HashSet::from_iter(newer.0.into_iter());
-    InformationUpdate(diff_tabs(newer, older))
+    InformationUpdate(diff_tabs(newer, older, config))
 }
 
-fn diff_tabs<I>(newer: I, older: I) -> Vec<TabUpdate>
+fn diff_tabs<I>(newer: I, older: I, config: Configuration) -> Vec<TabUpdate>
 where
     I: IntoIterator<Item = Tab>,
 {
@@ -120,17 +161,23 @@ where
 
     let mut diff: Vec<TabUpdate> = older
         .into_iter()
-        .map(|tab_data| {
+        .filter_map(|tab_data| {
             if let Some(newer_tab_data) = newer_mp.remove(&tab_data.title) {
-                TabUpdate {
+                if !config.unchanged {
+                    return None;
+                }
+                Some(TabUpdate {
                     title: tab_data.title,
-                    data: diff_data(newer_tab_data, tab_data.data),
+                    data: diff_data(newer_tab_data, tab_data.data, config),
                     // this tab already existed
                     update: Update::Unchanged,
-                }
+                })
             } else {
                 // it isn't here now
-                TabUpdate {
+                if !config.removed {
+                    return None;
+                }
+                Some(TabUpdate {
                     title: tab_data.title,
                     data: tab_data
                         .data
@@ -139,24 +186,26 @@ where
                         .collect(),
                     // existed in older
                     update: Update::Removed,
-                }
+                })
             }
         })
         .collect();
 
-    diff.extend(newer_mp.into_iter().map(|(title, data)| {
-        TabUpdate {
-            title,
-            data: data.into_iter().map(|s| DataUpdate::from(s)).collect(),
-            // exist in new only
-            update: Update::Added,
-        }
-    }));
+    if config.added {
+        diff.extend(newer_mp.into_iter().map(|(title, data)| {
+            TabUpdate {
+                title,
+                data: data.into_iter().map(|s| DataUpdate::from(s)).collect(),
+                // exist in new only
+                update: Update::Added,
+            }
+        }));
+    }
 
     diff
 }
 
-fn diff_data(newer: Vec<Data>, older: Vec<Data>) -> Vec<DataUpdate> {
+fn diff_data(newer: Vec<Data>, older: Vec<Data>, config: Configuration) -> Vec<DataUpdate> {
     struct DataStorage {
         link: Option<Link>,
         children: Vec<LinkNode>,
@@ -180,24 +229,33 @@ fn diff_data(newer: Vec<Data>, older: Vec<Data>) -> Vec<DataUpdate> {
 
     let mut diff: Vec<DataUpdate> = older
         .into_iter()
-        .map(|old_data| {
+        .filter_map(|old_data| {
             if let Some(new_data) = newer_mp.remove(&old_data.title) {
                 let update = if new_data.link == old_data.link && new_data.date == old_data.date {
+                    if !config.unchanged {
+                        return None;
+                    }
                     Update::Unchanged
                 } else {
+                    if !config.modified {
+                        return None;
+                    }
                     Update::Modified
                 };
-                DataUpdate {
+                Some(DataUpdate {
                     title: old_data.title,
                     // this title already existed
                     update,
                     link: new_data.link,
-                    children: diff_link_node(new_data.children, old_data.children),
+                    children: diff_link_node(new_data.children, old_data.children, config),
                     date: new_data.date,
-                }
+                })
             } else {
                 // it isn't here now
-                DataUpdate {
+                if !config.removed {
+                    return None;
+                }
+                Some(DataUpdate {
                     title: old_data.title,
                     link: old_data.link,
                     children: old_data
@@ -207,29 +265,35 @@ fn diff_data(newer: Vec<Data>, older: Vec<Data>) -> Vec<DataUpdate> {
                         .collect(),
                     date: old_data.date,
                     update: Update::Removed,
-                }
+                })
             }
         })
         .collect();
 
-    diff.extend(newer_mp.into_iter().map(|(title, data)| {
-        DataUpdate {
-            title,
-            link: data.link,
-            children: data
-                .children
-                .into_iter()
-                .map(|s| LinkNodeUpdate::from(s))
-                .collect(),
-            date: data.date,
-            update: Update::Added,
-        }
-    }));
+    if config.added {
+        diff.extend(newer_mp.into_iter().map(|(title, data)| {
+            DataUpdate {
+                title,
+                link: data.link,
+                children: data
+                    .children
+                    .into_iter()
+                    .map(|s| LinkNodeUpdate::from(s))
+                    .collect(),
+                date: data.date,
+                update: Update::Added,
+            }
+        }));
+    }
 
     diff
 }
 
-fn diff_link_node(newer: Vec<LinkNode>, older: Vec<LinkNode>) -> Vec<LinkNodeUpdate> {
+fn diff_link_node(
+    newer: Vec<LinkNode>,
+    older: Vec<LinkNode>,
+    config: Configuration,
+) -> Vec<LinkNodeUpdate> {
     let older: HashSet<_> = HashSet::from_iter(older.into_iter().rev());
     let newer: HashSet<_> = HashSet::from_iter(newer.into_iter().rev());
 
@@ -240,34 +304,45 @@ fn diff_link_node(newer: Vec<LinkNode>, older: Vec<LinkNode>) -> Vec<LinkNodeUpd
     );
     let mut diff: Vec<LinkNodeUpdate> = older
         .into_iter()
-        .map(|old_data| {
+        .filter_map(|old_data| {
             if let Some(newer_link) = newer_mp.remove(&old_data.title) {
                 let update = if newer_link == old_data.link {
+                    if !config.unchanged {
+                        return None;
+                    }
                     Update::Unchanged
                 } else {
+                    if !config.modified {
+                        return None;
+                    }
                     Update::Modified
                 };
 
-                LinkNodeUpdate {
+                Some(LinkNodeUpdate {
                     title: old_data.title,
                     link: newer_link,
                     update,
-                }
+                })
             } else {
-                LinkNodeUpdate {
+                if config.removed {
+                    return None;
+                }
+                Some(LinkNodeUpdate {
                     title: old_data.title,
                     link: old_data.link,
                     update: Update::Removed,
-                }
+                })
             }
         })
         .collect();
 
-    diff.extend(newer_mp.into_iter().map(|(title, link)| LinkNodeUpdate {
-        title,
-        link,
-        update: Update::Added,
-    }));
+    if config.added {
+        diff.extend(newer_mp.into_iter().map(|(title, link)| LinkNodeUpdate {
+            title,
+            link,
+            update: Update::Added,
+        }));
+    }
 
     diff
 }

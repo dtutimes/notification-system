@@ -1,5 +1,5 @@
 import notification_system from "notification-system";
-import fs from "fs";
+import fs from "node:fs";
 
 let html = await fetch("https://dtu.ac.in/")
     .then(response => {
@@ -7,7 +7,10 @@ let html = await fetch("https://dtu.ac.in/")
     });
 
 let old_html = fs.readFileSync("old_state.html").toString();
-let diff = notification_system.difference(html, old_html);
+let config = notification_system.Configuration.default_config();
+
+
+let diff = notification_system.difference(html, old_html,config);
 
 fs.writeFileSync("old_state.html", html);
 

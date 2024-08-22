@@ -6,7 +6,7 @@ use diff::*;
 
 macro_rules! print_diff {
     ($i: ident, $j: ident) => {
-        let diff = difference(&$i, &$j);
+        let diff = difference(&$i, &$j, Configuration::default());
         let diff_json = serde_json::to_string(&diff).expect("JSON keys should be valid string");
         println!("{}", diff_json);
         fs::write("old_state.json", $i).expect("Should be able to save");
