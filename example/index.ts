@@ -12,6 +12,8 @@ let config = notification_system.Configuration.default_config();
 
 let diff = notification_system.difference(html, old_html,config);
 
+console.log(diff);
+
 fs.writeFileSync("old_state.html", html);
 
 fs.writeFileSync("diff.json", JSON.stringify(diff, null, 2));

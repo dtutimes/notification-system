@@ -32,7 +32,7 @@ impl_hash!(Data);
 impl_hash!(Tab);
 impl_hash!(LinkNode);
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq, Eq)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub enum Update {
     Added,
@@ -163,12 +163,14 @@ where
         .into_iter()
         .filter_map(|tab_data| {
             if let Some(newer_tab_data) = newer_mp.remove(&tab_data.title) {
-                if !config.unchanged {
+                let diff = diff_data(newer_tab_data, tab_data.data, config);
+
+                if diff.is_empty() && !config.unchanged {
                     return None;
                 }
                 Some(TabUpdate {
                     title: tab_data.title,
-                    data: diff_data(newer_tab_data, tab_data.data, config),
+                    data: diff,
                     // this tab already existed
                     update: Update::Unchanged,
                 })
@@ -231,23 +233,26 @@ fn diff_data(newer: Vec<Data>, older: Vec<Data>, config: Configuration) -> Vec<D
         .into_iter()
         .filter_map(|old_data| {
             if let Some(new_data) = newer_mp.remove(&old_data.title) {
+                let diff = diff_link_node(new_data.children, old_data.children, config);
+
                 let update = if new_data.link == old_data.link && new_data.date == old_data.date {
-                    if !config.unchanged {
+                    if diff.is_empty() && !config.unchanged {
                         return None;
                     }
                     Update::Unchanged
                 } else {
-                    if !config.modified {
+                    if diff.is_empty() && !config.modified {
                         return None;
                     }
                     Update::Modified
                 };
+
                 Some(DataUpdate {
                     title: old_data.title,
                     // this title already existed
                     update,
                     link: new_data.link,
-                    children: diff_link_node(new_data.children, old_data.children, config),
+                    children: diff,
                     date: new_data.date,
                 })
             } else {
