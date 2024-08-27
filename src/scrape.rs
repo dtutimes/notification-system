@@ -117,7 +117,15 @@ fn clean_text(s: Node) -> String {
 fn get_date(s: Node) -> Option<String> {
     s.next().and_then(|date_elem| {
         if date_elem.name() == Some("small") {
-            Some(date_elem.text().trim().to_owned())
+            Some(
+                date_elem
+                    .text()
+                    .trim()
+                    .trim_start_matches("Date")
+                    .trim_start_matches("date")
+                    .trim_start_matches([':', ' '])
+                    .to_owned(),
+            )
         } else {
             None
         }
