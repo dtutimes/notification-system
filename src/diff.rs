@@ -34,6 +34,13 @@ impl_hash!(LinkNode);
 
 #[derive(Serialize, PartialEq, Eq)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
+/// Represent whether the node itself was added, removed, modified or unchanged
+/// or if it should inherit the parent's update status
+///
+/// This will show result concerning only the node's own title, and link.
+///
+/// So it may the case that even if the node is marked as unchanged, the children
+/// are marked as modified or removed or added.
 pub enum Update {
     Added,
     Removed,
@@ -60,6 +67,7 @@ impl From<Data> for DataUpdate {
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
+/// Updates in a tab
 pub struct TabUpdate {
     pub title: String,
     pub data: Vec<DataUpdate>,
@@ -68,6 +76,7 @@ pub struct TabUpdate {
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
+/// Updates in a data's sub-link node
 pub struct LinkNodeUpdate {
     pub title: String,
     pub link: Link,
@@ -86,6 +95,7 @@ impl From<LinkNode> for LinkNodeUpdate {
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
+/// Updates in a data item in a tab
 pub struct DataUpdate {
     pub title: String,
     #[cfg_attr(feature = "wasm", tsify(optional))]
@@ -98,10 +108,12 @@ pub struct DataUpdate {
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
+/// Updates in the scraped information
 pub struct InformationUpdate(pub Vec<TabUpdate>);
 
 #[derive(Serialize, Clone, Copy)]
 #[cfg_attr(feature = "wasm", derive(Deserialize), wasm_bindgen)]
+/// Configuration to modify the behavior of what scraped information should be reported
 pub struct Configuration {
     pub modified: bool,
     pub added: bool,
@@ -113,6 +125,7 @@ pub struct Configuration {
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 impl Configuration {
     #[cfg_attr(feature = "wasm", wasm_bindgen(constructor))]
+    /// Create a new configuration with the given parameters
     pub fn new(modified: bool, added: bool, removed: bool, unchanged: bool) -> Self {
         Self {
             modified,
@@ -140,6 +153,8 @@ impl Default for Configuration {
 }
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
+/// Compare the two given html strings (old state and new state of
+/// the website's HTML) and return the difference between them
 pub fn difference(newer: &str, older: &str, config: Configuration) -> InformationUpdate {
     let older = scrape(older);
     let newer = scrape(newer);

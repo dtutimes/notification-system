@@ -11,37 +11,50 @@ use wasm_bindgen::prelude::*;
 
 #[derive(Serialize, PartialEq, Eq)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
+/// Wrapper around a string to represent a link
 pub struct Link(pub String);
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
+/// Item in the list of updates
 pub struct Data {
+    /// Title of the update
     pub title: String,
     #[cfg_attr(feature = "wasm", tsify(optional))]
+    /// Link to the update if any
     pub link: Option<Link>,
+    /// Sub-links in the update
     pub children: Vec<LinkNode>,
     #[cfg_attr(feature = "wasm", tsify(optional))]
+    /// Date of the update if written in the update itself
     pub date: Option<String>,
 }
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
+/// Sub-link item with a title and a link in an update
 pub struct LinkNode {
+    /// Title of the sub-link
     pub title: String,
+    /// Link to the sub-link
     pub link: Link,
 }
 
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
 pub struct Tab {
+    /// Title of the tab
     pub title: String,
+    /// List of updates in the tab
     pub data: Vec<Data>,
 }
 #[derive(Serialize)]
 #[cfg_attr(feature = "wasm", derive(Tsify), tsify(into_wasm_abi))]
+/// Information scraped from the website
 pub struct Information(pub Vec<Tab>);
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
+/// Scrape the given html string of the main DTU website to get the scraped information
 pub fn scrape(html: &str) -> Information {
     let document = Document::from(html);
 
